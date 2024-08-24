@@ -1,0 +1,136 @@
+#!/usr/sbin/nft -f
+
+# IMPORTANT!
+# - Use at your own risk, and think for yourself
+# - This only works with the netavark network backend for podman.
+#   It may work in other settings if adapted appropriately,
+#   but I don't know how well/if at all it will work in other settings.
+# - ADAPT TO YOUR USE CASE!
+# - Also, ALWAYS test for your use case if all works as expected,
+#   ie. container networking is not broken, everything that shouldn't
+#   be accessible is not accessible, and everything else is.
+# - Other caveats: Idk, but it's possible that future changes to eg. netavark
+#   break this firewall config, breaking your container networking,
+#   or, even worse, allowing packets that should be dropped,
+#   ie. silently rendering the firewall useless.
+#   MAKE SURE to verify whether this could be/is a potential problem,
+#   and act accordingly.
+
+# Flush everything
+flush ruleset
+
+# Add default, unpopulated nat table. Netavark will modify this table.
+# Entries here are required for container networking to function,
+# which means that after you flush this table, networking of all
+# containers that were created before is broken, and they have to be
+# restarted.
+# If that's not possible, then dump the table and restore it after
+# starting the firewall, which should (?) restore networking for them.
+# Apart from that, this is a non-issue, as the firewall should be set
+# before any container is run anyways.
+table ip nat {
+    chain PREROUTING {
+        type nat hook prerouting priority -100
+         policy accept
+    }
+    chain OUTPUT {
+        type nat hook output priority -100
+        policy accept
+    }
+    chain POSTROUTING {
+        type nat hook postrouting priority 100
+        policy accept
+    }
+}
+
+# This is the table that should be modified for firewall conf
+table ip filter {
+
+    # Netavark wants to modify this one. Don't change the name.
+    # This has to be attached to the forward hook or netavark complains
+    # and does not work.
+    chain FORWARD {
+        comment "Chain for netavark to dump its rules here"
+        type filter hook forward priority 0
+        policy accept
+    }
+
+    # This is the chain that netavark modifies.
+    # Left unchanged here, just initialized.
+    # Does not really matter, as netavark only sets accepting rules,
+    # which therefore don't interfere with our custom rules.
+    chain NETAVARK_FORWARD {
+        comment "Chain for netavark to dump its rules here"
+    }
+
+    # -------------------
+    # Modify from here on
+
+    # Set for IP ranges that will be blacklisted
+    # To remove ranges, delete them from this set afterwards.
+    set bl_priv_ip {
+        type ipv4_addr
+        comment "blacklist private IP4 ranges"
+        flags interval
+        auto-merge
+        elements = {
+            10.0.0.0/8,
+            100.64.0.0/10,
+            172.16.0.0/12,
+            192.0.0.0/24,
+            192.168.0.0/16,
+            198.18.0.0/15,
+            169.254.0.0/16,
+            255.255.255.255
+        }
+    }
+
+    set wl_cont_ranges {
+        type ipv4_addr
+        comment "IP ranges assigned to containers, have to be whitelisted"
+        flags interval
+        auto-merge
+        elements = {
+            10.254.0.0/16,
+            10.89.0.0/16
+        }
+    }
+
+    set wl_host_ips {
+        type ipv4_addr
+        comment "IP ranges for the host (access to those is allowed for ports specified below)"
+        flags interval
+        auto-merge
+        elements = {
+            # Add other IP addresses of the host that containers should be able to access here
+            192.168.0.2/32,
+            172.16.0.1/32
+        }
+    }
+
+    set wl_host_tcp_ports {
+        type inet_service
+        comment "Host ports that containers may access"
+        flags constant
+        elements = {
+            80,
+            443
+        }
+    }
+
+    # This is very simplified, if you need to manage per-container permissions,
+    # then ensure that container has a static, known IP address and add other corresponding rules
+    # in this chain.
+    chain FWD {
+        type filter hook forward priority -1 # netavarks chain has priority 0
+        policy accept # Swap policy to drop to completely disable internet access.
+        # policy drop
+        comment "Chain that is used for filtering/access control"
+        # Accepting all traffic to any container. Access to published ports should be controlled by the host,
+        # and inter-container access should be restricted by network separation.
+        # If you need more fine-grained control, then add it yourself.
+        ip daddr @wl_cont_ranges accept comment "Accept traffic to containers"
+        ip daddr @wl_host_ips tcp dport @wl_host_tcp_ports accept comment "Accept whitelisted traffic to host"
+        ip daddr @bl_priv_ip drop comment "Drop traffic to private IP ranges"
+    }
+}

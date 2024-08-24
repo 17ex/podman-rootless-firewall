@@ -1,0 +1,14 @@
+[Unit]
+Description=Container for testing the firewall
+Requires=postgresql.service
+After=postgresql.service
+
+[Container]
+Image=docker.io/library/alpine:latest
+Exec=/bin/sleep 1d
+NoNewPrivileges=true
+Network=fw_test-db.network
+Network=fw_test-internet.network
+
+[Install]
+WantedBy=container.target

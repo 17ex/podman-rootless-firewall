@@ -1,0 +1,10 @@
+[Unit]
+Description=nftables firewall for the userspace network stack
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/podman unshare --rootless-netns %h/rootless-netns-fw.sh start "%h/.config/containers/firewall.nft" "%t/rootless-netns-fw.old.nft"
+ExecStop=/usr/bin/podman unshare --rootless-netns %h/rootless-netns-fw.sh stop "%h/.config/containers/firewall.nft" "%t/rootless-netns-fw.old.nft"
+#ExecStart=/usr/bin/podman unshare --rootless-netns /usr/local/bin/rootless-netns-fw.sh start "%h/.config/containers/firewall.nft" "%t/rootless-netns-fw.old.nft"
+#ExecStop=/usr/bin/podman unshare --rootless-netns /usr/local/bin/rootless-netns-fw.sh stop "%h/.config/containers/firewall.nft" "%t/rootless-netns-fw.old.nft"

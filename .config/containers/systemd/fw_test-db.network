@@ -1,0 +1,6 @@
+[Unit]
+Description=Network for communication between fw_test and PostgreSQL
+
+[Network]
+Internal=true
+Options=isolate

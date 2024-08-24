@@ -1,0 +1,11 @@
+[Unit]
+Description=PostgreSQL container for fw_test
+
+[Container]
+Image=docker.io/library/postgres:latest
+HostName=postgresql
+NoNewPrivileges=true
+Network=fw_test-db.network
+
+[Install]
+WantedBy=container.target

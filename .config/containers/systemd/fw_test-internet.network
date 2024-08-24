@@ -1,0 +1,7 @@
+[Unit]
+Description=Network allowing container fw_test to access the internet
+
+[Network]
+Options=isolate
+Subnet=10.254.254.0/30
+IPRange=10.254.254.0/30

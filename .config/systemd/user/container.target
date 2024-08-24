@@ -1,0 +1,12 @@
+[Unit]
+Description=Run all user containers
+Requires=netns-firewall.target default.target
+After=netns-firewall.target default.target
+
+[Install]
+WantedBy=default.target
+
+# Alternatively, one could remove the dependencies on default.target
+# as well as the Install section, and set this target as the default
+# target for the user with
+# `systemctl --user set-default container.target`
