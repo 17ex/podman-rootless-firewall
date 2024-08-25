@@ -6,6 +6,7 @@ Image=docker.io/library/postgres:latest
 HostName=postgresql
 NoNewPrivileges=true
 Network=fw_test-db.network
+Environment=POSTGRES_PASSWORD=dont_put_plaintext_passwords_here_lol
 
 [Install]
 WantedBy=container.target

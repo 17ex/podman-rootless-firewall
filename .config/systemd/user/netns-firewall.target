@@ -1,4 +1,4 @@
 [Unit]
-Description=Active firewall for the user network namespace
+Description=Ensures firewall for the user network namespace
 Requires=netns-firewall.service
 After=netns-firewall.service
