@@ -172,6 +172,10 @@ podman exec -it systemd-fw_test nc 192.168.0.2 25
 # should not work, but again,
 nc 192.168.0.2 25
 # should work on the host/as the user running the containers.
+# Finally, the container should still have working internet access,
+# so
+podman exec -it systemd-fw_test wget archlinux.org
+# should also work.
 ```
 
 ## Caveats
